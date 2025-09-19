@@ -1,0 +1,32 @@
+<div class="sidebar-header">
+  <h2 class="text-xl font-bold text-accent">Auditoria App</h2>
+</div>
+
+<div class="search-bar">
+  <ng-icon name="lucideSearch" class="search-icon"></ng-icon>
+  <input
+    type="text"
+    placeholder="Pesquisar menu..."
+    [(ngModel)]="searchTerm"
+    (input)="filterNavItems()"
+    class="sidebar-search-input"
+  />
+</div>
+
+<nav class="sidebar-nav">
+  <ng-container *ngIf="categorizedNavItems.length > 0; else noResults">
+    <ng-container *ngFor="let categoryGroup of categorizedNavItems">
+      <li class="category-header">{{ categoryGroup.category }}</li>
+      <ul>
+        <li *ngFor="let item of categoryGroup.items">
+          <a [routerLink]="item.path" routerLinkActive="active-link">
+            <ng-icon [name]="item.icon"></ng-icon> {{ item.label }}
+          </a>
+        </li>
+      </ul>
+    </ng-container>
+  </ng-container>
+  <ng-template #noResults>
+    <div class="no-results">Nenhum resultado encontrado.</div>
+  </ng-template>
+</nav>

@@ -1,0 +1,647 @@
+<div class="min-h-screen bg-dark-pattern">
+  <header class="bg-card shadow-sm border-b border-glow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center py-6">
+        <a routerLink="/" class="button-ghost mr-4">
+          <ng-icon name="lucideArrowLeft"></ng-icon> Voltar
+        </a>
+        <h1 class="text-2xl font-bold text-white">
+          Sistema de <span class="text-accent">Auditoria</span>
+        </h1>
+        <div class="ml-auto flex items-center gap-2">
+          <span *ngIf="statusConexao?.connected" class="badge-success">
+            <ng-icon name="lucideWifi"></ng-icon> Supabase Conectado
+          </span>
+          <span *ngIf="!statusConexao?.connected" class="badge-destructive">
+            <ng-icon name="lucideWifiOff"></ng-icon> Supabase Desconectado
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="space-y-6">
+      <div *ngIf="erro" class="alert-destructive">
+        <ng-icon name="lucideTriangleAlert"></ng-icon>
+        <div>
+          <h4 class="alert-title">Erro</h4>
+          <p class="alert-description">{{ erro }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="sucesso" class="alert-success">
+        <ng-icon name="lucideCircleCheck"></ng-icon>
+        <div>
+          <h4 class="alert-title">Sucesso</h4>
+          <p class="alert-description">{{ sucesso }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="statusConexao && statusConexao.connected" class="alert-info">
+        <ng-icon name="lucideDatabase"></ng-icon>
+        <div>
+          <h4 class="alert-title">Conexão com Supabase</h4>
+          <p>
+            <strong>Status:</strong> {{ statusConexao.message }}
+          </p>
+          <p>
+            <strong>Total de Franquias:</strong> {{ teams.length }}
+          </p>
+        </div>
+      </div>
+
+      <div class="card card-glow">
+        <div class="card-header">
+          <h2 class="card-title">
+            <ng-icon name="lucideBuilding2"></ng-icon> Seleção de Franquia
+          </h2>
+          <p class="card-description">
+            Selecione a franquia e o tipo de auditoria para carregar os dados
+          </p>
+        </div>
+        <div class="card-content space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div class="space-y-2">
+              <label for="franquia" class="label">Franquia *</label>
+              <select
+                id="franquia"
+                [ngModel]="teamSelecionado?.name || ''"
+                (ngModelChange)="selecionarTeam($event)"
+                [disabled]="loading"
+                class="select-input"
+              >
+                <option value="" disabled>Selecione uma franquia</option>
+                <option *ngFor="let team of teams" [value]="team.name">
+                  {{ team.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="label">Tipo de Auditoria</label>
+              <div class="toggle-group" [class.disabled]="!teamSelecionado">
+                <button
+                  type="button"
+                  [class.active]="auditType === 'live'"
+                  (click)="setAuditType('live')"
+                  [disabled]="!teamSelecionado"
+                >
+                  <ng-icon name="lucideZap"></ng-icon> Tempo Real
+                </button>
+                <button
+                  type="button"
+                  [class.active]="auditType === 'past'"
+                  (click)="setAuditType('past')"
+                  [disabled]="!teamSelecionado"
+                >
+                  <ng-icon name="lucideHistory"></ng-icon> Atemporal
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="auditType === 'past'" class="space-y-2 mt-4">
+            <label for="past-date" class="label flex items-center gap-2">
+              <ng-icon name="lucideCalendar"></ng-icon>
+              Data da Auditoria Atemporal *
+            </label>
+            <input
+              id="past-date"
+              type="date"
+              [(ngModel)]="selectedPastDate"
+              class="input-field"
+              [disabled]="!teamSelecionado"
+            />
+            <p *ngIf="selectedPastDate" class="text-xs text-gray-400">
+              Data selecionada: {{ formatarData(selectedPastDate) }}
+            </p>
+          </div>
+
+          <div *ngIf="loading && teamSelecionado" class="flex items-center gap-2 text-white mt-4">
+            <ng-icon name="lucideLoader" class="animate-spin"></ng-icon>
+            <span>Carregando dados da franquia...</span>
+          </div>
+
+          <div *ngIf="usuarioSelecionado" class="info-box mt-4">
+            <h3 class="font-semibold text-accent mb-2">Informações da Franquia Selecionada</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white">
+              <div><strong>Franquia:</strong> {{ teamSelecionado?.name || "Não informado" }}</div>
+              <div><strong>Responsável:</strong> {{ usuarioSelecionado.name || "Não informado" }}</div>
+              <div><strong>Email:</strong> {{ usuarioSelecionado.email || "Não informado" }}</div>
+              <div><strong>Telefone:</strong> {{ usuarioSelecionado.whatsapp || "Não informado" }}</div>
+              <div><strong>CNPJ:</strong> {{ cnpjFranquia || "Não informado" }}</div>
+              <div><strong>Razão Social:</strong> {{ razaoSocialFranquia || "Não informado" }}</div>
+              <div class="md:col-span-2">
+                <strong>Endereço:</strong> {{ enderecoFranquia || "Não informado" }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="usuarioSelecionado" class="card card-glow">
+        <div class="card-header">
+          <h2 class="card-title">Dados de Auditoria</h2>
+          <p class="card-description">
+            Compare os dados do Sistema com os dados coletados em campo
+          </p>
+        </div>
+        <div class="card-content space-y-6">
+          <div class="space-y-2">
+            <label for="tecnico" class="label flex items-center gap-2">
+              <ng-icon name="lucideUserCheck"></ng-icon>
+              Técnico Responsável *
+            </label>
+            <select
+              id="tecnico"
+              [(ngModel)]="tecnicoSelecionado"
+              class="select-input"
+            >
+              <option [ngValue]="null" disabled>Selecione um técnico responsável</option>
+              <option *ngFor="let tecnico of technicians" [ngValue]="tecnico.id">
+                <div class="flex flex-col">
+                  <span class="font-medium">{{ tecnico.name || "Nome não informado" }}</span>
+                  <span *ngIf="tecnico.phone" class="text-xs text-gray-400">{{ tecnico.phone }}</span>
+                </div>
+              </option>
+            </select>
+            <div *ngIf="tecnicoSelecionado" class="info-box mt-2">
+              <p class="text-sm text-accent">
+                <strong>Técnico selecionado:</strong> {{ getNomeTecnicoSelecionado() }}
+              </p>
+            </div>
+          </div>
+
+          <hr class="separator" />
+
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold text-lg text-accent flex items-center gap-2">
+                <ng-icon name="lucideDatabaseZap"></ng-icon> Dados de Estoque
+              </h3>
+              <div class="flex items-center space-x-2">
+                <label for="sistema-editavel" class="text-sm text-white">
+                  Editar dados Sistema
+                </label>
+                <input
+                  type="checkbox"
+                  id="sistema-editavel"
+                  [(ngModel)]="sistemaEditavel"
+                  class="switch-checkbox"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <div class="space-y-4">
+                <h4 class="font-semibold text-lg text-accent flex items-center gap-2">
+                  <ng-icon name="lucideCalendar"></ng-icon>
+                  Dados de Campo
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="space-y-2">
+                    <label for="data-visita" class="label">Data da Visita Técnica</label>
+                    <input
+                      id="data-visita"
+                      type="date"
+                      [(ngModel)]="dadosCampo['dataVisitaTecnica']"
+                      class="input-field"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label for="ocioso-campo" class="label">Estoque Ocioso (Campo)</label>
+                    <input
+                      id="ocioso-campo"
+                      placeholder="Estoque ocioso verificado"
+                      type="number"
+                      [(ngModel)]="dadosCampo['estoqueOcioso']"
+                      class="input-field"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="space-y-2">
+                    <label class="label">M² Auferidos em campo</label>
+                    <div class="display-field">
+                      <p class="text-sm text-white">
+                        {{ m2InstaladosCampoTotal }} m² (Soma das contagens abaixo)
+                      </p>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <label for="danificadas-campo" class="label">Placas Danificadas (Campo)</label>
+                    <input
+                      id="danificadas-campo"
+                      placeholder="Placas danificadas verificadas"
+                      type="number"
+                      [(ngModel)]="dadosCampo['placasDanificadas']"
+                      class="input-field"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <hr class="separator-light" />
+
+              <div class="space-y-4">
+                <h4 class="font-semibold text-lg text-accent flex items-center gap-2">
+                  <ng-icon name="lucideDatabaseZap"></ng-icon>
+                  Dados do Sistema
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="space-y-2">
+                    <label class="label">Quantidade de Estoque (Sistema)</label>
+                    <input
+                      *ngIf="sistemaEditavel"
+                      placeholder="Digite a quantidade do Sistema"
+                      type="number"
+                      [(ngModel)]="dadosSistema['quantidadeEstoque']"
+                      (ngModelChange)="atualizarEstoqueOcioso()"
+                      class="input-field"
+                    />
+                    <div *ngIf="!sistemaEditavel" class="display-field">
+                      <p class="text-sm text-gray-400">
+                        {{ dadosSistema['quantidadeEstoque'] || "Informação não disponível" }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="label">Estoque Ocioso (Sistema)</label>
+                    <input
+                      *ngIf="sistemaEditavel"
+                      placeholder="Digite o estoque ocioso do Sistema"
+                      type="number"
+                      [(ngModel)]="dadosSistema['estoqueOcioso']"
+                      class="input-field"
+                    />
+                    <div *ngIf="!sistemaEditavel" class="display-field">
+                      <p class="text-sm text-gray-400">
+                        {{ dadosSistema['estoqueOcioso'] || "Informação não disponível" }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="space-y-2">
+                    <label class="label">M² informados no sistema</label>
+                    <input
+                      *ngIf="sistemaEditavel"
+                      placeholder="Digite os M² do Sistema"
+                      type="number"
+                      [(ngModel)]="dadosSistema['m2Instalados']"
+                      (ngModelChange)="atualizarEstoqueOcioso()"
+                      class="input-field"
+                    />
+                    <div *ngIf="!sistemaEditavel" class="display-field">
+                      <p class="text-sm text-gray-400">
+                        {{ dadosSistema['m2Instalados'] || "Calculado automaticamente do Sistema" }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="dadosSistema['quantidadeEstoque']" class="info-box mt-4 border-accent bg-accent-dark">
+              <div class="flex items-center gap-2 mb-2">
+                <span *ngIf="verificarSomaEstoque()" class="badge-success-small">
+                  ✓ Soma Correta
+                </span>
+                <span *ngIf="!verificarSomaEstoque()" class="badge-destructive-small">
+                  <ng-icon name="lucideTriangleAlert"></ng-icon> Soma Incorreta
+                </span>
+                <span class="text-sm text-white">
+                  M² Auferidos em campo + Estoque Ocioso (Campo) = Quantidade de Estoque (Sistema)
+                </span>
+              </div>
+              <p class="text-sm text-gray-300">
+                {{ m2InstaladosCampoTotal }} + {{ dadosCampo['estoqueOcioso'] || 0 }} =
+                {{ somaCampoEstoqueDisplay }}
+                (deve ser {{ dadosSistema['quantidadeEstoque'] }})
+              </p>
+            </div>
+
+            <div *ngIf="dadosCampo['estoqueOcioso'] && dadosCampo['placasDanificadas']" class="info-box mt-4 border-accent bg-accent-dark">
+              <div class="flex items-center gap-2 mb-2">
+                <span *ngIf="verificarSomaOcioso()" class="badge-success-small">
+                  ✓ Validação Correta
+                </span>
+                <span *ngIf="!verificarSomaOcioso()" class="badge-destructive-small">
+                  <ng-icon name="lucideTriangleAlert"></ng-icon> Validação Incorreta
+                </span>
+                <span class="text-sm text-white">Placas Danificadas não pode exceder Estoque Ocioso</span>
+              </div>
+              <p class="text-sm text-gray-300">
+                Placas Danificadas: {{ dadosCampo['placasDanificadas'] }} (máximo: {{ dadosCampo['estoqueOcioso'] }})
+              </p>
+            </div>
+          </div>
+
+          <hr class="separator" />
+
+          <div class="space-y-4">
+            <h3 class="font-semibold text-lg text-accent flex items-center gap-2">
+              <ng-icon name="lucideDatabaseZap"></ng-icon>
+              <span *ngIf="auditType === 'live'">Ordens Ativas ({{ obrasProcessadas.length }})</span>
+              <span *ngIf="auditType === 'past'">
+                Obras Ativas em {{ selectedPastDate ? formatarData(selectedPastDate) : "..." }} ({{ obrasProcessadas.length }})
+              </span>
+            </h3>
+
+            <div *ngIf="loadingObras" class="flex items-center justify-center gap-2 text-white py-8">
+              <ng-icon name="lucideLoader" class="animate-spin"></ng-icon>
+              <span>
+                Buscando obras
+                <ng-container *ngIf="auditType === 'past' && selectedPastDate"> para {{ formatarData(selectedPastDate) }}</ng-container>
+                ...
+              </span>
+            </div>
+
+            <div *ngIf="!loadingObras && obrasProcessadas.length > 0" class="space-y-6">
+              <div *ngFor="let ordem of obrasProcessadas; let i = index" class="card bg-accent-dark border-accent">
+                <div class="card-header pb-2">
+                  <h3 class="card-title text-lg flex items-center gap-2">
+                    <ng-icon name="lucideFileText"></ng-icon>
+                    <span *ngIf="auditType === 'live'">Ordem #{{ ordem.id }}</span>
+                    <span *ngIf="auditType === 'past'">Obra #{{ ordem.id }}</span>
+                  </h3>
+                  <div class="card-description flex flex-wrap gap-2 mt-1">
+                    <span class="badge-outline">
+                      <ng-icon name="lucideUser"></ng-icon> Cliente: {{ ordem.cliente || "Não informado" }}
+                    </span>
+                    <span class="badge-outline">
+                      <ng-icon name="lucideLayers"></ng-icon> M² Sistema: {{ ordem.m2Instalados || "0" }}
+                    </span>
+                    <span class="badge-outline">
+                      <ng-icon name="lucideCalendar"></ng-icon> Início: {{ formatarData(ordem.createdAt) }}
+                    </span>
+                    <span class="badge-outline">
+                      <ng-icon name="lucideCalendarDays"></ng-icon> Término: {{ ordem.dataTermino ? formatarData(ordem.dataTermino) : "N/A" }}
+                    </span>
+                    <span class="badge-outline">
+                      <ng-icon name="lucideCalendar"></ng-icon> Período: {{ ordem.periodo ? (ordem.periodo + ' dias') : "N/A" }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-content pt-2">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div class="space-y-2">
+                      <label [for]="'contagem-m2-' + ordem.id" class="label flex items-center gap-1">
+                        <ng-icon name="lucideRuler"></ng-icon>
+                        Contagem M² (Campo)
+                      </label>
+                      <input
+                        [id]="'contagem-m2-' + ordem.id"
+                        type="number"
+                        placeholder="M² verificados na obra"
+                        [(ngModel)]="contagemM2CampoPorOrdem[ordem.id]"
+                        class="input-field"
+                      />
+                    </div>
+                    <div class="space-y-2">
+                      <label [for]="'observacao-' + ordem.id" class="label flex items-center gap-1">
+                        <ng-icon name="lucideMessageSquare"></ng-icon>
+                        Observações
+                      </label>
+                      <textarea
+                        [id]="'observacao-' + ordem.id"
+                        placeholder="Observações sobre esta obra..."
+                        [(ngModel)]="observacoesPorOrdem[ordem.id]"
+                        class="textarea-field min-h-[80px]"
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <div *ngIf="ordem.documentUrl" class="mt-4 mb-4">
+                    <button
+                      class="button-outline-accent"
+                      (click)="abrirDocumentoPdf(ordem.documentUrl)"
+                    >
+                      <ng-icon name="lucideExternalLink"></ng-icon>
+                      Abrir PDF da Ordem/Obra
+                    </button>
+                  </div>
+
+                  <div *ngIf="ordem.areasProtegidas && ordem.areasProtegidas.length > 0" class="accordion-container mt-4">
+                    <details class="accordion-item">
+                      <summary class="accordion-trigger">
+                        <div class="flex items-center gap-2">
+                          <ng-icon name="lucideShield"></ng-icon>
+                          <span>Áreas Protegidas ({{ ordem.areasProtegidas.length }})</span>
+                        </div>
+                      </summary>
+                      <div class="accordion-content">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                          <div *ngFor="let area of ordem.areasProtegidas; let areaIndex = index" class="product-card">
+                            <p class="text-sm font-medium text-white mb-2">{{ area.productName }}</p>
+                            <div class="space-y-1 text-xs text-gray-400">
+                              <div class="flex justify-between">
+                                <span>Preço Unitário:</span>
+                                <span class="text-accent">{{ formatarValor(area.unitPrice) }}</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span>M² Sistema:</span>
+                                <span class="text-accent">{{ area.quantity }}</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span>Total:</span>
+                                <span class="text-accent">{{ formatarValor(area.total) }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                  <p *ngIf="!ordem.areasProtegidas || ordem.areasProtegidas.length === 0" class="text-sm text-gray-400 mt-2">Nenhuma área protegida nesta obra</p>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="!loadingObras && obrasProcessadas.length === 0" class="text-center py-4 text-gray-400">
+              <ng-icon name="lucideDatabaseZap" class="block mx-auto mb-2 opacity-50"></ng-icon>
+              <span *ngIf="auditType === 'past' && !selectedPastDate">Selecione uma data para buscar as obras.</span>
+              <span *ngIf="!(auditType === 'past' && !selectedPastDate)">Nenhuma obra ativa encontrada para os critérios selecionados.</span>
+            </div>
+          </div>
+
+          <hr class="separator" />
+
+          <div class="space-y-4">
+            <h3 class="font-semibold text-lg text-accent">Obras Não Fornecidas</h3>
+            <p class="text-sm text-gray-300">
+              Adicione obras que não foram fornecidas pelo sistema mas foram identificadas em campo
+            </p>
+            <div *ngFor="let obra of obrasNaoFornecidas; let i = index; trackBy: trackByObraNaoFornecida" class="card bg-accent-dark border-accent">
+              <div class="card-content pt-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div class="space-y-2">
+                    <label class="label flex items-center gap-1">
+                      <ng-icon name="lucideRuler"></ng-icon>
+                      Contagem M²
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="M² da obra"
+                      [(ngModel)]="obra.contagemM2"
+                      (ngModelChange)="handleObraNaoFornecidaChange(i, 'contagemM2', $event)" class="input-field"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="label flex items-center gap-1">
+                      <ng-icon name="lucideUser"></ng-icon>
+                      Cliente
+                    </label>
+                    <input
+                      placeholder="Nome do cliente"
+                      [(ngModel)]="obra.cliente"
+                      (ngModelChange)="handleObraNaoFornecidaChange(i, 'cliente', $event)" class="input-field"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="label">Endereço</label>
+                    <input
+                      placeholder="Endereço da obra"
+                      [(ngModel)]="obra.endereco"
+                      (ngModelChange)="handleObraNaoFornecidaChange(i, 'endereco', $event)" class="input-field"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="label">Período</label>
+                    <div class="flex gap-2">
+                      <input
+                        placeholder="Ex: 30 dias"
+                        type="text"
+                        [(ngModel)]="obra.periodo"
+                        (ngModelChange)="handleObraNaoFornecidaChange(i, 'periodo', $event)" class="input-field"
+                      />
+                      <button
+                        *ngIf="obrasNaoFornecidas.length > 1"
+                        (click)="removerObraNaoFornecida(i)"
+                        class="button-destructive-icon"
+                      >
+                        <ng-icon name="lucideTrash2"></ng-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          <hr class="separator" />
+
+          <div class="space-y-4">
+            <h3 class="font-semibold text-lg text-accent">Observações Gerais</h3>
+            <div class="space-y-2">
+              <label for="observacoes-gerais" class="label">
+                Observações Gerais da Auditoria
+              </label>
+              <textarea
+                id="observacoes-gerais"
+                placeholder="Digite suas observações gerais sobre a auditoria..."
+                [(ngModel)]="dadosCampo['observacoesGerais']"
+                class="textarea-field min-h-[100px]"
+              ></textarea>
+            </div>
+          </div>
+
+          <hr class="separator" />
+
+          <div class="space-y-4">
+            <h3 class="font-semibold text-lg text-accent flex items-center gap-2">
+              <ng-icon name="lucideImage"></ng-icon>
+              Imagens da Auditoria
+            </h3>
+            <div class="space-y-2">
+              <label for="imagens" class="label">
+                Adicionar Imagens (máximo 100)
+              </label>
+              <input
+                id="imagens"
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                multiple
+                (change)="handleImagensChange($event)"
+                class="file-input"
+              />
+              <p class="text-xs text-gray-400">{{ imagensSelecionadas.length }}/100 imagens selecionadas</p>
+            </div>
+
+            <div *ngIf="previewsImagens.length > 0" class="space-y-2">
+              <label class="label">Previews das Imagens</label>
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div *ngFor="let preview of previewsImagens; let index = index" class="image-preview-container">
+                  <img
+                    [src]="preview || '/placeholder.svg'"
+                    [alt]="'Preview ' + (index + 1)"
+                    class="image-preview"
+                  />
+                  <button
+                    (click)="removerImagem(index)"
+                    class="button-remove-image"
+                  >
+                    <ng-icon name="lucideX"></ng-icon>
+                  </button>
+                  <div class="image-index-badge">{{ index + 1 }}</div>
+                  <div class="image-name-badge">{{ nomesImagens[index] || ('Imagem ' + (index + 1)) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="separator" />
+
+          <div class="space-y-4">
+            <div>
+              <label for="status" class="label">
+                Status da Auditoria
+              </label>
+              <select
+                id="status"
+                [(ngModel)]="status"
+                class="select-input"
+              >
+                <option value="" disabled>Selecione o status</option>
+                <option value="congruente">Congruente</option>
+                <option value="incongruente">Incongruente</option>
+              </select>
+            </div>
+
+            <span *ngIf="status" [class.badge-success]="status === 'congruente'" [class.badge-destructive]="status === 'incongruente'" class="text-white">
+              Status: {{ status === 'congruente' ? 'Congruente' : 'Incongruente' }}
+            </span>
+          </div>
+
+          <div *ngIf="mostrarAvisoContagem" class="alert-warning">
+            <ng-icon name="lucideTriangleAlert"></ng-icon>
+            <div>
+              <h4 class="alert-title">Atenção</h4>
+              <p class="alert-description">
+                Algumas obras não possuem contagem M² preenchida. Deseja continuar mesmo assim?
+              </p>
+              <div class="flex gap-2 mt-2">
+                <button (click)="setMostrarAvisoContagem(false); handleTransmit()" class="button-warning">
+                  Sim, continuar
+                </button>
+                <button (click)="setMostrarAvisoContagem(false)" class="button-outline-warning">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-4 pt-4">
+            <button
+              (click)="handleTransmit()"
+              [disabled]="loading || transmitindo"
+              class="button-primary"
+            >
+              <ng-icon *ngIf="transmitindo" name="lucideLoader" class="animate-spin"></ng-icon>
+              <ng-icon *ngIf="!transmitindo" name="lucideSend"></ng-icon>
+              <span>{{ transmitindo ? "Transmitindo..." : "Transmitir" }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>

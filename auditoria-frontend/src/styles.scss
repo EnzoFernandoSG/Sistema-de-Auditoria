@@ -1,0 +1,72 @@
+:root {
+  --background: #0d1117;
+  --foreground: #ffffff;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
+  --primary: #66ff00;
+  --primary-foreground: #000000;
+  --secondary: #212b2e;
+  --secondary-foreground: #e6edf3;
+  --muted: #4a5568;
+  --muted-foreground: #a0aec0;
+  --accent: #2d3748;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #4a5568;
+  --input: #2d3748;
+  --ring: #66ff00;
+  --radius: 0.5rem;
+
+  --alert-destructive-bg: rgba(127, 29, 29, 0.3);
+  --alert-success-bg: rgba(22, 101, 52, 0.3);
+  --alert-warning-bg: rgba(146, 64, 14, 0.3);
+  --button-warning-bg: #d97706;
+  --button-warning-hover-bg: #b45309;
+}
+
+// ADICIONAR VARIÁVEIS SASS PARA CORES DE CÁLCULO
+$primary-color-sass: #66ff00;
+$input-color-sass: #2d3748;
+$border-color-sass: #4a5568;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body { // Garante que ocupem a altura total
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif; // Pode adicionar uma fonte customizada aqui
+  background-color: var(--background);
+  color: var(--foreground);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+// Estilos para scrollbar (opcional, para um visual mais dark)
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--card);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+// Para o caso de precisar importar estilos de node_modules (ex: fontes, normalize.css)
+// @import '~normalize.css/normalize.css'; // Exemplo

@@ -1,0 +1,125 @@
+/* src/app/layout/sidebar/sidebar.scss */
+
+.sidebar-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.text-accent {
+  color: var(--primary);
+}
+
+.search-bar {
+  margin-bottom: 20px;
+  position: relative; // Para posicionar o ícone de pesquisa
+}
+
+.sidebar-search-input {
+  width: 100%;
+  padding: 10px 15px 10px 40px; // Padding à esquerda para o ícone
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--input);
+  color: var(--foreground);
+  font-size: 0.9em;
+
+  &::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 1px var(--ring);
+  }
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  font-size: 1.1em;
+}
+
+
+.sidebar-nav {
+  flex-grow: 1; // Para ocupar o espaço restante e permitir scroll
+  overflow-y: auto;
+  padding-right: 5px; // Espaço para scrollbar customizada
+
+  // Scrollbar para a sidebar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--card);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+  }
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  margin-bottom: 8px; // Espaçamento um pouco menor
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: var(--radius);
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-weight: 500; // Um pouco mais de peso
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a.active-link {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.sidebar-nav a ng-icon { // Seleciona o componente ng-icon
+  margin-right: 12px; // Mais espaço
+  font-size: 1.2em; // Ícones um pouco maiores
+  color: var(--muted-foreground); // Cor padrão dos ícones no menu
+
+  .active-link & { // Cor do ícone quando o link está ativo
+    color: var(--primary);
+  }
+}
+
+.category-header {
+  font-weight: 600; // Mais bold
+  color: var(--primary); // Cor de destaque
+  margin-top: 25px; // Mais espaçamento
+  margin-bottom: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--muted); // Linha pontilhada sutil
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.no-results {
+  text-align: center;
+  color: var(--muted-foreground);
+  padding: 20px 0;
+  font-style: italic;
+  font-size: 0.9em;
+}

@@ -1,0 +1,276 @@
+<div class="min-h-screen bg-dark-pattern">
+  <header class="bg-card shadow-sm border-b border-glow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center py-6">
+        <a routerLink="/home" class="button-ghost mr-4">
+          <ng-icon name="lucideArrowLeft"></ng-icon> Voltar
+        </a>
+        <h1 class="text-2xl font-bold text-white">
+          Histórico de <span class="text-accent">Auditorias</span>
+        </h1>
+        <div class="ml-auto">
+          <button (click)="carregarAuditorias()" class="button-outline">
+            <ng-icon name="lucideRefreshCcw"></ng-icon> Recarregar
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="space-y-6">
+      <div *ngIf="erro" class="alert-destructive">
+        <ng-icon name="lucideAlertTriangle"></ng-icon>
+        <div>
+          <h4 class="alert-title">Erro</h4>
+          <p class="alert-description">{{ erro }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="sucesso" class="alert-success">
+        <ng-icon name="lucideCircleCheck"></ng-icon>
+        <div>
+          <h4 class="alert-title">Sucesso</h4>
+          <p class="alert-description">{{ sucesso }}</p>
+        </div>
+      </div>
+
+      <div class="card card-glow">
+        <div class="card-header">
+          <h2 class="card-title">
+            <ng-icon name="lucideFileText"></ng-icon> Auditorias Realizadas
+          </h2>
+          <p class="card-description">
+            Visualize o histórico de todas as auditorias.
+          </p>
+        </div>
+        <div class="card-content">
+          <div *ngIf="loadingAuditorias" class="flex items-center justify-center gap-2 text-white py-8">
+            <ng-icon name="lucideLoader" class="animate-spin"></ng-icon>
+            <span>Carregando auditorias...</span>
+          </div>
+
+          <div *ngIf="!loadingAuditorias && auditorias.length === 0" class="text-center py-4 text-gray-400">
+            <ng-icon name="lucideDatabase" class="block mx-auto mb-2 opacity-50"></ng-icon>
+            Nenhuma auditoria encontrada.
+          </div>
+
+          <div *ngIf="!loadingAuditorias && auditorias.length > 0" class="overflow-x-auto">
+            <table class="w-full min-w-[700px] table-auto">
+              <thead>
+                <tr class="text-left text-sm font-medium text-gray-400">
+                  <th class="py-2 px-4">ID</th>
+                  <th class="py-2 px-4">Franquia</th>
+                  <th class="py-2 px-4">Data Visita</th>
+                  <th class="py-2 px-4">Técnico</th>
+                  <th class="py-2 px-4">Status</th>
+                  <th class="py-2 px-4">M² Sist.</th>
+                  <th class="py-2 px-4">Estoque Sist.</th>
+                  <th class="py-2 px-4">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let auditoria of auditorias; trackBy: trackByAuditoriaId" class="border-t border-gray-700 hover:bg-gray-800 transition-colors">
+                  <td class="py-3 px-4 text-sm text-white truncate max-w-[100px]">{{ auditoria.id | slice:0:8 }}...</td>
+                  <td class="py-3 px-4 text-sm text-white">{{ auditoria.unidadeFranqueada }}</td>
+                  <td class="py-3 px-4 text-sm text-white">{{ auditoria.dataVisitaTecnica || 'N/A' }}</td>
+                  <td class="py-3 px-4 text-sm text-white">{{ auditoria.technician?.name || 'N/A' }}</td>
+                  <td class="py-3 px-4">
+                    <span [class.badge-success]="auditoria.statusText === 'Congruente'"
+                          [class.badge-destructive]="auditoria.statusText === 'Incongruente'"
+                          class="badge-small">{{ auditoria.statusText || 'N/A' }}</span>
+                  </td>
+                  <td class="py-3 px-4 text-sm text-white">{{ auditoria.m2InstaladosSistema || 0 }}</td>
+                  <td class="py-3 px-4 text-sm text-white">{{ auditoria.qntEstoqueSistema || 0 }}</td>
+                  <td class="py-3 px-4 flex gap-2">
+                    <button (click)="verDetalhes(auditoria)" class="button-icon-small button-info">
+                      <ng-icon name="lucideEye"></ng-icon>
+                    </button>
+                    <button (click)="editarAuditoria(auditoria)" class="button-icon-small button-warning">
+                      <ng-icon name="lucideEdit"></ng-icon>
+                    </button>
+                    <button (click)="excluirAuditoria(auditoria.id)" class="button-icon-small button-destructive">
+                      <ng-icon name="lucideTrash2"></ng-icon>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="auditoriaSelecionada" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-2xl h-full max-h-[90vh] overflow-y-auto relative">
+          <div class="card-header flex justify-between items-center border-b border-border p-4">
+            <h2 class="text-xl font-bold text-white">
+              {{ modoEdicao ? 'Editar Auditoria' : 'Detalhes da Auditoria' }}
+            </h2>
+            <button (click)="fecharDetalhes()" class="button-ghost text-gray-400 hover:text-white">
+              <ng-icon name="lucideX"></ng-icon>
+            </button>
+          </div>
+          <div class="card-content p-4 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white">
+              <div><strong>ID:</strong> {{ auditoriaSelecionada.id }}</div>
+              <div><strong>Franquia:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.unidadeFranqueada }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.unidadeFranqueada" class="input-field" type="text" />
+              </div>
+              <div><strong>CNPJ:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.cnpj || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.cnpj" class="input-field" type="text" />
+              </div>
+              <div><strong>Proprietário:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.proprietario || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.proprietario" class="input-field" type="text" />
+              </div>
+              <div><strong>Email:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.email || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.email" class="input-field" type="email" />
+              </div>
+              <div><strong>Whatsapp:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.whatsapp || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.whatsapp" class="input-field" type="text" />
+              </div>
+              <div><strong>Razão Social:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.razaoSocial || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.razaoSocial" class="input-field" type="text" />
+              </div>
+              <div><strong>Endereço:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.endereco || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.endereco" class="input-field" type="text" />
+              </div>
+              <div><strong>Cidade:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.cidade || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.cidade" class="input-field" type="text" />
+              </div>
+              <div><strong>Estado:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.estado || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.estado" class="input-field" type="text" />
+              </div>
+              <div><strong>Data Visita:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.dataVisitaTecnica || 'N/A' }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.dataVisitaTecnica" class="input-field" type="date" />
+              </div>
+              <div><strong>Data Criação:</strong> {{ auditoriaSelecionada.createdAt || 'N/A' }}</div>
+              <div><strong>Técnico:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.technician?.name || 'N/A' }}</ng-container>
+                <select *ngIf="modoEdicao" [(ngModel)]="editFormData.technicianId" class="select-input">
+                  <option [ngValue]="null">Selecione um técnico</option>
+                  <option *ngFor="let tech of technicians" [ngValue]="tech.id">{{ tech.name }}</option>
+                </select>
+              </div>
+              <div><strong>Status:</strong>
+                <ng-container *ngIf="!modoEdicao">
+                  <span [class.badge-success]="auditoriaSelecionada.statusText === 'Congruente'" [class.badge-destructive]="auditoriaSelecionada.statusText === 'Incongruente'" class="badge-small">{{ auditoriaSelecionada.statusText || 'N/A' }}</span>
+                </ng-container>
+                <select *ngIf="modoEdicao" [(ngModel)]="editFormData.status" class="select-input">
+                  <option value="congruente">Congruente</option>
+                  <option value="incongruente">Incongruente</option>
+                </select>
+              </div>
+
+              <h3 class="md:col-span-2 font-semibold text-accent mt-4">Dados de Estoque</h3>
+              <div><strong>Qtd. Estoque Sist.:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.qntEstoqueSistema || 0 }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.quantidadeEstoqueSistema" class="input-field" type="number" />
+              </div>
+              <div><strong>M² Inst. Sist.:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.m2InstaladosSistema || 0 }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.m2InstaladosSistema" class="input-field" type="number" />
+              </div>
+              <div><strong>Estoque Ocioso Sist.:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.estoqueOciosoSistema || 0 }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.estoqueOciosoSistema" class="input-field" type="number" />
+              </div>
+              <div><strong>M² Inst. Campo:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.m2InstaladosCampo || 0 }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.m2InstaladosCampo" class="input-field" type="number" />
+              </div>
+              <div><strong>Estoque Ocioso Campo:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.estoqueOciosoCampo || 0 }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.estoqueOciosoCampo" class="input-field" type="number" />
+              </div>
+              <div><strong>Placas Danificadas Campo:</strong>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.placasDanificadasCampo || 0 }}</ng-container>
+                <input *ngIf="modoEdicao" [(ngModel)]="editFormData.placasDanificadasCampo" class="input-field" type="number" />
+              </div>
+
+              <h3 class="md:col-span-2 font-semibold text-accent mt-4">Observações e Obras</h3>
+              <div class="md:col-span-2 space-y-2">
+                <label class="label">Observações Gerais:</label>
+                <ng-container *ngIf="!modoEdicao">{{ auditoriaSelecionada.ObservacoesGerais || 'N/A' }}</ng-container>
+                <textarea *ngIf="modoEdicao" [(ngModel)]="editFormData.observacoesGerais" class="textarea-field min-h-[80px]"></textarea>
+              </div>
+
+              <div *ngIf="auditoriaSelecionada.notes && auditoriaSelecionada.notes.length > 0" class="md:col-span-2">
+                <label class="label">Observações por Ordem:</label>
+                <ul *ngIf="!modoEdicao" class="list-disc pl-5">
+                  <li *ngFor="let note of auditoriaSelecionada.notes">{{ note }}</li>
+                </ul>
+                <div *ngIf="modoEdicao" class="space-y-2">
+                    <div *ngFor="let note of auditoriaSelecionada.notes; let i = index">
+                        <input [(ngModel)]="editFormData.observacoesPorOrdemValues![i]" class="input-field" type="text" />
+                    </div>
+                </div>
+              </div>
+
+              <div *ngIf="auditoriaSelecionada.contagemM2Campo && auditoriaSelecionada.contagemM2Campo.length > 0" class="md:col-span-2">
+                <label class="label">Contagens M² Campo:</label>
+                <ul *ngIf="!modoEdicao" class="list-disc pl-5">
+                  <li *ngFor="let m2 of auditoriaSelecionada.contagemM2Campo">{{ m2 }}</li>
+                </ul>
+                 <div *ngIf="modoEdicao" class="space-y-2">
+                    <div *ngFor="let m2 of auditoriaSelecionada.contagemM2Campo; let i = index">
+                        <input [(ngModel)]="editFormData.contagemM2Campo![i]" class="input-field" type="number" />
+                    </div>
+                </div>
+              </div>
+
+              <div *ngIf="auditoriaSelecionada.obrasNaoFornecidas && auditoriaSelecionada.obrasNaoFornecidas.length > 0" class="md:col-span-2">
+                <label class="label">Obras Não Fornecidas:</label>
+                <ul *ngIf="!modoEdicao" class="list-disc pl-5">
+                  <li *ngFor="let obra of auditoriaSelecionada.obrasNaoFornecidas">
+                    M²: {{ obra.contagemM2 || 'N/A' }}, Cliente: {{ obra.cliente || 'N/A' }}, Endereço: {{ obra.endereco || 'N/A' }}, Período: {{ obra.periodo || 'N/A' }}
+                  </li>
+                </ul>
+                <div *ngIf="modoEdicao" class="space-y-2">
+                    <div *ngFor="let obra of auditoriaSelecionada.obrasNaoFornecidas; let i = index">
+                         <div class="grid grid-cols-4 gap-2">
+                            <input [(ngModel)]="editFormData.obrasNaoFornecidasJson![i].contagemM2" placeholder="M²" class="input-field" type="number">
+                            <input [(ngModel)]="editFormData.obrasNaoFornecidasJson![i].cliente" placeholder="Cliente" class="input-field" type="text">
+                            <input [(ngModel)]="editFormData.obrasNaoFornecidasJson![i].endereco" placeholder="Endereço" class="input-field" type="text">
+                            <input [(ngModel)]="editFormData.obrasNaoFornecidasJson![i].periodo" placeholder="Período" class="input-field" type="text">
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <h3 class="md:col-span-2 font-semibold text-accent mt-4">Imagens</h3>
+              <div *ngIf="auditoriaSelecionada.imageUrls && auditoriaSelecionada.imageUrls.length > 0" class="grid grid-cols-2 gap-4 md:col-span-2">
+                <div *ngFor="let imageUrl of auditoriaSelecionada.imageUrls; let idx = index" class="relative">
+                  <img [src]="imageUrl" alt="Imagem da Auditoria {{idx + 1}}" class="w-full h-auto rounded-md shadow-md">
+                  <span class="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">{{ auditoriaSelecionada.imageNames?.[idx] || 'Imagem ' + (idx + 1) }}</span>
+                </div>
+              </div>
+              <div *ngIf="!auditoriaSelecionada.imageUrls || auditoriaSelecionada.imageUrls.length === 0" class="md:col-span-2 text-gray-400">
+                Nenhuma imagem anexada.
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-4">
+              <button *ngIf="!modoEdicao" (click)="fecharDetalhes()" class="button-outline">Fechar</button>
+              <button *ngIf="!modoEdicao" (click)="editarAuditoria(auditoriaSelecionada)" class="button-warning">
+                <ng-icon name="lucideEdit"></ng-icon> Editar
+              </button>
+              <button *ngIf="modoEdicao" (click)="salvarEdicao(auditoriaSelecionada)" class="button-primary">
+                <ng-icon name="lucideSave"></ng-icon> Salvar Alterações
+              </button>
+              <button *ngIf="modoEdicao" (click)="fecharDetalhes()" class="button-outline">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

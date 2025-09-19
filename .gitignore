@@ -1,0 +1,17 @@
+# .NET
+SistemaAuditoria.Backend/bin/
+SistemaAuditoria.Backend/obj/
+SistemaAuditoria.Backend/appsettings*.json
+*.user
+*.vs
+*.db
+
+# frontend
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+
+# Ambiente
+.env
+*.log

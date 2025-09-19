@@ -1,0 +1,21 @@
+.main-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #1a202c;
+  color: #fff;
+}
+
+app-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background-color: #2d3748;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid #4a5568;
+}
+
+.content-area {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
